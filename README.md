@@ -30,7 +30,7 @@ Win32-Process-Watcher
 
 * 安装python 2.7版本
 * 安装pywin32包
-* 安装geventlet 0.4.1包
+* 安装greenlet 0.4.1包
 * 安装gevent 1.0版本（现在只有rc版本）
 
 本软件目前没有做成可安装版本，所以将下载后的代码解压到一个目录下直接运行即可。注意，
@@ -44,7 +44,7 @@ Win32-Process-Watcher
 [server]
 log_to = 'pywatcher.log'
 host = '0.0.0.0'
-post = 6001
+port = 6001
 
 #[program:uliweb]
 #command = 'uliweb runserver --tornado'
