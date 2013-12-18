@@ -44,23 +44,27 @@ Win32-Process-Watcher
 [server]
 log_to = 'pywatcher.log'
 host = '0.0.0.0'
+#g_server port
 port = 6001
 
-#[program:uliweb]
-#command = 'uliweb runserver --tornado'
-#directory = 'Hello'
-directory = 'WinServing'
+[program:yourprogram_name]
+command = 'command line is here'
+directory = 'command starting directory'
+#retry times if start program failed, default is 3
 startretries = 3
-#start program waiting time
+#start program waiting n seconds, default is 1
 starting_time = 1
 ```
 
-其中server用来定义g_sever.py要使用的socket的服务器地址和端口，一般可以保持缺省。
-`log_to` 用来定义输出的日志文件。
+其中server用来定义g_sever.py要使用的信息：
 
-下面注释的是应用程序，需要的话可以仿照这个来定义你自已的应用。分别说明一下：
+* `log_to` 用来定义输出的日志文件。
+* `host` 用来定义server绑定的IP，缺省为 `0.0.0.0`。
+* `port` 用来定义server绑定的端口，缺省为 `6001`。
 
-* `[program:uliweb]` 用来定义应用程序的名字，冒号后面可以是不同的应用，可以通过这个
+下面是应用程序的定义，需要的话可以仿照这个来定义你自已的应用。分别说明一下：
+
+* `[program:yourprogram_name]` 用来定义应用程序的名字，冒号后面可以是不同的应用，可以通过这个
 名字通过client来进行单独的控制。
 * `command` 用来定义应用程序的执行命令行
 * `directory` 用来定义应用程序执行时的路径
