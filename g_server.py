@@ -4,9 +4,14 @@ from gevent.server import StreamServer
 from gevent.subprocess import Popen, call
 from sorteddict import SortedDict
 from logfile import RotatingFile
+import datetime
 
 shutdown = False
 manager = None
+
+RUNNING = 1
+STOPPED = 0
+FATAL = -1
 
 def set_shutdown(flag):
     global shutdown
@@ -17,10 +22,12 @@ class Command(object):
         self.name = name
         self.command = command
         self.log = None
-        self.stop = False
+        self.stop = STOPPED   #0 normal stopped 1 running -1 fatal stopped
         self.process = None
         for k, v in kwargs.items():
             setattr(self, k, v)
+        self.start_time = None
+        self.stop_time = None
         
     def is_ok(self):
         return self.process and self.process.poll() is None
@@ -35,15 +42,31 @@ class Command(object):
             msg = self.name + ' has already been started'
         else:
             self.log.info('start '+self.name)
-            self.process = Popen(self.command, stdout=self.log, stderr=self.log, shell=True, cwd=self.cwd)
-            self.stop = False
-            msg = self.name + ' started'
+            n = 0
+            while n < self.startretries:
+                self.process = Popen(self.command, stdout=self.log, stderr=self.log, shell=True, cwd=self.cwd)
+                gevent.sleep(self.starting_time)
+                if self.process.poll() is not None:
+                    #error
+                    self.log.info('start '+self.name+' failed!, times=%d'%n)
+                    n += 1
+                else:
+                    self.start_time = datetime.datetime.now()
+                    break
+            #if stopped then status is Fatal
+            if n == self.startretries:
+                self.stop = FATAL
+                msg = self.name + ' started failed'
+            else:
+                self.stop = RUNNING
+                msg = self.name + ' started'
         return msg
     
     def do_stop(self):
         if self.is_ok():
             self.log.info('stop '+self.name)
-            self.stop = True
+            self.stop = STOPPED
+            self.stop_time = datetime.datetime.now()
             call(['taskkill', '/F', '/T', '/PID', str(self.process.pid)])
             self.process = None
             msg = self.name + ' stopped'
@@ -54,9 +77,15 @@ class Command(object):
     def do_status(self):
         if self.is_ok():
             status = 'RUNNING'
+            info = 'pid %d, uptime %s' % (self.process.pid, self.start_time.strftime('%H:%M:%S'))
         else:
-            status = 'STOPPED'
-        msg = '%-20s %s' % (self.name, status)
+            if self.stop == STOPPED:
+                status = 'STOPPED'
+                info = self.stop_time.ctime()
+            else:
+                status = 'FATAL'
+                info = 'Exited too quickly'
+        msg = '%-20s %-10s %s' % (self.name, status, info)
         return msg
         
 def monitor():
@@ -82,6 +111,8 @@ class CommandsManager(object):
                 kwargs['logfile'] = v.get('logfile', name+'.log')
                 kwargs['logfile_maxbytes'] = v.get('logfile_maxbytes', 50*1024*1024)
                 kwargs['logfile_backups'] = v.get('logfile_backups', 10)
+                kwargs['startretries'] = v.get('startretries', 3)
+                kwargs['starting_time'] = v.get('starting_time', 1)
                 self.commands[name] = Command(**kwargs)
                 
     def start(self, command=None):
@@ -118,7 +149,7 @@ class CommandsManager(object):
 
     def check(self):
         for k, p in self.commands.items():
-            if not p.stop and not p.is_ok():
+            if not p.stop in (STOPPED, FATAL) and not p.is_ok():
                 p.do_start()
         
 def CommandsHandler(socket, address):

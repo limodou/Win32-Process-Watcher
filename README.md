@@ -49,6 +49,10 @@ port = 6001
 #[program:uliweb]
 #command = 'uliweb runserver --tornado'
 #directory = 'Hello'
+directory = 'WinServing'
+startretries = 3
+#start program waiting time
+starting_time = 1
 ```
 
 其中server用来定义g_sever.py要使用的socket的服务器地址和端口，一般可以保持缺省。
@@ -63,6 +67,8 @@ port = 6001
 * `logfile` 缺省为 “应用名”.log。表示输出日志文件名。
 * `logfile_maxbytes` 缺省为50M，单位目前是字节数。用来控制每个日志的大小。
 * `logfile_backups` 缺省为10个。用来控制日志文件的个数。
+* `startretries` 启动出错时重试的次数
+* `starting_time` 等待程序启动时等待的时间
 
 ## 服务设置
 
